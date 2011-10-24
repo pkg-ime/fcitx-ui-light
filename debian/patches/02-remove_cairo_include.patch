@@ -1,0 +1,36 @@
+Description: remove useless inclusion of cairo headers
+ fcitx-ui-light does not need cairo to compile and work, removing
+ two lines of useless inclusion of cairo headers can make the
+ build successful. 
+ .
+ This patch also removes a useless inclusion of pango header,
+ though it does not affect build process.
+Origin: vendor
+Forwarded: http://code.google.com/p/fcitx/issues/detail?id=471
+Applied-Upstream: https://github.com/fcitx/fcitx-ui-light/commit/404dfcf4788e234e822628a5d39f695f3120da28
+Author: Aron Xu <aron@debian.org>
+Last-Update: 2011-10-25
+--- a/src/InputWindow.c
++++ b/src/InputWindow.c
+@@ -38,8 +38,6 @@
+ #include <fcitx/module/x11/x11stuff.h>
+ #include "MainWindow.h"
+ #include <fcitx-utils/log.h>
+-#include <cairo/cairo.h>
+-#include <cairo/cairo-xlib.h>
+ 
+ static boolean InputWindowEventHandler(void *arg, XEvent* event);
+ static void InitInputWindow(InputWindow* inputWindow);
+--- a/src/lightui.h
++++ b/src/lightui.h
+@@ -29,10 +29,6 @@
+ 
+ #include <X11/Xlib.h>
+ 
+-#ifdef _ENABLE_PANGO
+-#include <pango/pangocairo.h>
+-#endif
+-
+ #include "draw.h"
+ #include <fcitx/module/x11/x11stuff.h>
+ #include <X11/Xft/Xft.h>

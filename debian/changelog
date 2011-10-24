@@ -1,0 +1,5 @@
+fcitx-ui-light (0.1.2-1) unstable; urgency=low
+
+  * Initial release (Closes: #638780)
+
+ -- Aron Xu <aron@debian.org>  Mon, 24 Oct 2011 23:59:38 +0800

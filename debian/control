@@ -1,0 +1,25 @@
+Source: fcitx-ui-light
+Section: utils
+Priority: optional
+Maintainer: IME Packaging Team <pkg-ime-devel@lists.alioth.debian.org>
+Uploaders: Aron Xu <aron@debian.org>, YunQiang Su <wzssyqa@gmail.com>
+DM-Upload-Allowed: yes
+Build-Depends: debhelper (>= 8), cmake, gettext, pkg-config, intltool,
+ fcitx-libs-dev (>= 1:4.1.2), libfontconfig1-dev, libfreetype6-dev,
+ libxft-dev, libxpm-dev
+Standards-Version: 3.9.2
+Homepage: http://code.google.com/p/fcitx
+Vcs-Git: git://git.debian.org/pkg-ime/fcitx-ui-light.git
+Vcs-Browser: http://git.debian.org/?p=pkg-ime/fcitx-ui-light.git
+
+Package: fcitx-ui-light
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: light weight xlibs and xft based UI for Fcitx
+ fcitx-ui-light is a very light weight UI for Fcitx, using only xlibs
+ and xft. It is directly inherited from the UI code base of Fcitx 3.x
+ series.
+ .
+ This UI is intended to work on all X11 environment with minimal
+ dependencies, so it can scale to more situations where none of Cairo,
+ Pango or QT is available.
