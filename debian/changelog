@@ -1,3 +1,10 @@
+fcitx-ui-light (0.1.2-2) unstable; urgency=low
+
+  * debian/patches/01-traywindow_none.patch:
+    [UPSTREAM] detect to avoid trayWindow->window is None.
+
+ -- Aron Xu <aron@debian.org>  Tue, 25 Oct 2011 02:23:32 +0800
+
 fcitx-ui-light (0.1.2-1) unstable; urgency=low
 
   * Initial release (Closes: #638780)
