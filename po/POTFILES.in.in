@@ -1,0 +1,14 @@
+# List of source files which contain translatable strings.
+./po/desc.po
+./po/conf.po
+@REL_SOURCE_ROOT@/src/InputWindow.c
+@REL_SOURCE_ROOT@/src/MainWindow.c
+@REL_SOURCE_ROOT@/src/MenuWindow.c
+@REL_SOURCE_ROOT@/src/TrayWindow.c
+@REL_SOURCE_ROOT@/src/draw.c
+@REL_SOURCE_ROOT@/src/font.c
+@REL_SOURCE_ROOT@/src/lightui.c
+@REL_SOURCE_ROOT@/src/lightuiconfig.c
+@REL_SOURCE_ROOT@/src/tray.c
+@REL_SOURCE_ROOT@/data/fcitx-light-ui.conf.in
+@REL_SOURCE_ROOT@/data/fcitx-light.desktop.in
