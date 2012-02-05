@@ -15,7 +15,7 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 /**
  * @file   InputWindow.h
@@ -31,7 +31,9 @@
 
 #include <X11/Xlib.h>
 
-#include "fcitx/fcitx.h"
+#include <fcitx/fcitx.h>
+#include <fcitx/ui.h>
+
 #include <X11/Xft/Xft.h>
 
 #define ROUND_SIZE 80
@@ -57,8 +59,8 @@ typedef struct _InputWindow {
 
     Display* dpy;
     int iScreen;
-    Messages* msgUp;
-    Messages* msgDown;
+    FcitxMessages* msgUp;
+    FcitxMessages* msgDown;
     struct _FcitxSkin* skin;
     struct _FcitxLightUI *owner;
     int pixmap;

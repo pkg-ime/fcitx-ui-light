@@ -1,9 +1,9 @@
 #include "fcitx-config/fcitx-config.h"
 #include "lightui.h"
 
-static void FilterCopyUseTray(GenericConfig* config, ConfigGroup *group, ConfigOption *option, void *value, ConfigSync sync, void *filterArg);
-static void FilterScreenSizeX(GenericConfig* config, ConfigGroup *group, ConfigOption *option, void *value, ConfigSync sync, void *filterArg);
-static void FilterScreenSizeY(GenericConfig* config, ConfigGroup *group, ConfigOption *option, void *value, ConfigSync sync, void *filterArg);
+static void FilterCopyUseTray(FcitxGenericConfig* config, FcitxConfigGroup *group, FcitxConfigOption *option, void *value, FcitxConfigSync sync, void *filterArg);
+static void FilterScreenSizeX(FcitxGenericConfig* config, FcitxConfigGroup *group, FcitxConfigOption *option, void *value, FcitxConfigSync sync, void *filterArg);
+static void FilterScreenSizeY(FcitxGenericConfig* config, FcitxConfigGroup *group, FcitxConfigOption *option, void *value, FcitxConfigSync sync, void *filterArg);
 
 CONFIG_BINDING_BEGIN(FcitxLightUI)
 CONFIG_BINDING_REGISTER_WITH_FILTER("LightUI", "MainWindowOffsetX", iMainWindowOffsetX, FilterScreenSizeX)
@@ -36,7 +36,7 @@ CONFIG_BINDING_REGISTER("LightUI", "CursorColor", cursorColor)
 
 CONFIG_BINDING_END()
 
-void FilterCopyUseTray(GenericConfig* config, ConfigGroup *group, ConfigOption *option, void *value, ConfigSync sync, void *filterArg) {
+void FilterCopyUseTray(FcitxGenericConfig* config, FcitxConfigGroup *group, FcitxConfigOption *option, void *value, FcitxConfigSync sync, void *filterArg) {
     static boolean firstRunOnUseTray = true;
     FcitxLightUI *lightui = (FcitxLightUI*) config;
     boolean *b = (boolean*)value;
@@ -48,7 +48,7 @@ void FilterCopyUseTray(GenericConfig* config, ConfigGroup *group, ConfigOption *
     }
 }
 
-static void FilterScreenSizeX(GenericConfig* config, ConfigGroup *group, ConfigOption *option, void *value, ConfigSync sync, void *filterArg)
+static void FilterScreenSizeX(FcitxGenericConfig* config, FcitxConfigGroup *group, FcitxConfigOption *option, void *value, FcitxConfigSync sync, void *filterArg)
 {
     int* X = (int*) value;
     FcitxLightUI *lightui = (FcitxLightUI*) config;
@@ -69,7 +69,7 @@ static void FilterScreenSizeX(GenericConfig* config, ConfigGroup *group, ConfigO
 
 }
 
-static void FilterScreenSizeY(GenericConfig* config, ConfigGroup *group, ConfigOption *option, void *value, ConfigSync sync, void *filterArg)
+static void FilterScreenSizeY(FcitxGenericConfig* config, FcitxConfigGroup *group, FcitxConfigOption *option, void *value, FcitxConfigSync sync, void *filterArg)
 {
     int* Y = (int*) value;
     FcitxLightUI *lightui = (FcitxLightUI*) config;

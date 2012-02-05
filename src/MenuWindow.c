@@ -15,7 +15,7 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 #include <ctype.h>
 #include <math.h>
@@ -56,7 +56,7 @@ static boolean IsMouseInOtherMenu(XlibMenu *xlibMenu, int x, int y);
 static void InitXlibMenu(XlibMenu* menu);
 static void ReloadXlibMenu(void* arg, boolean enabled);
 
-#define GetMenuShell(m, i) ((MenuShell*) utarray_eltptr(&(m)->shell, (i)))
+#define GetMenuItem(m, i) ((FcitxMenuItem*) utarray_eltptr(&(m)->shell, (i)))
 
 void InitXlibMenu(XlibMenu* menu)
 {
@@ -114,12 +114,13 @@ XlibMenu* CreateMainMenuWindow(FcitxLightUI *lightui)
 boolean MenuWindowEventHandler(void *arg, XEvent* event)
 {
     XlibMenu* menu = (XlibMenu*) arg;
+    FcitxLightUI* lightui = menu->owner;
     if (event->xany.window == menu->menuWindow)
     {
         switch (event->type)
         {
         case MapNotify:
-            UpdateMenuShell(menu->menushell);
+            FcitxMenuUpdate(menu->menushell);
             break;
         case Expose:
             DrawXlibMenu(menu);
@@ -145,16 +146,16 @@ boolean MenuWindowEventHandler(void *arg, XEvent* event)
             {
                 DrawXlibMenu(menu);
             }
-            MenuShell *shell = GetMenuShell(menu->menushell, i);
-            if (shell && shell->type == MENUTYPE_SUBMENU && shell->subMenu)
+            FcitxMenuItem *item = GetMenuItem(menu->menushell, i);
+            if (item && item->type == MENUTYPE_SUBMENU && item->subMenu)
             {
-                XlibMenu* subxlibmenu = (XlibMenu*) shell->subMenu->uipriv;
+                XlibMenu* subxlibmenu = (XlibMenu*) item->subMenu->uipriv[lightui->isfallback];
                 CloseOtherSubMenuWindow(menu, subxlibmenu);
                 MoveSubMenu(subxlibmenu, menu, offseth);
                 DrawXlibMenu(subxlibmenu);
                 XMapRaised(menu->owner->dpy, subxlibmenu->menuWindow);
             }
-            if (shell == NULL)
+            if (item == NULL)
                 CloseOtherSubMenuWindow(menu, NULL);
         }
         break;
@@ -195,7 +196,7 @@ void CloseAllMenuWindow(FcitxLightUI *lightui)
             menupp = (FcitxUIMenu **) utarray_next(uimenus, menupp)
         )
     {
-        XlibMenu* xlibMenu = (XlibMenu*) (*menupp)->uipriv;
+        XlibMenu* xlibMenu = (XlibMenu*) (*menupp)->uipriv[lightui->isfallback];
         XUnmapWindow(lightui->dpy, xlibMenu->menuWindow);
     }
     XUnmapWindow(lightui->dpy, lightui->mainMenuWindow->menuWindow);
@@ -203,30 +204,32 @@ void CloseAllMenuWindow(FcitxLightUI *lightui)
 
 void CloseOtherSubMenuWindow(XlibMenu *xlibMenu, XlibMenu* subMenu)
 {
-    MenuShell *menu;
-    for (menu = (MenuShell *) utarray_front(&xlibMenu->menushell->shell);
+    FcitxLightUI* lightui = xlibMenu->owner;
+    FcitxMenuItem *menu;
+    for (menu = (FcitxMenuItem *) utarray_front(&xlibMenu->menushell->shell);
             menu != NULL;
-            menu = (MenuShell *) utarray_next(&xlibMenu->menushell->shell, menu)
+            menu = (FcitxMenuItem *) utarray_next(&xlibMenu->menushell->shell, menu)
         )
     {
-        if (menu->type == MENUTYPE_SUBMENU && menu->subMenu && menu->subMenu->uipriv != subMenu)
+        if (menu->type == MENUTYPE_SUBMENU && menu->subMenu && menu->subMenu->uipriv[lightui->isfallback] != subMenu)
         {
-            CloseAllSubMenuWindow((XlibMenu *)menu->subMenu->uipriv);
+            CloseAllSubMenuWindow((XlibMenu *)menu->subMenu->uipriv[lightui->isfallback]);
         }
     }
 }
 
 void CloseAllSubMenuWindow(XlibMenu *xlibMenu)
 {
-    MenuShell *menu;
-    for (menu = (MenuShell *) utarray_front(&xlibMenu->menushell->shell);
+    FcitxMenuItem *menu;
+    FcitxLightUI* lightui = xlibMenu->owner;
+    for (menu = (FcitxMenuItem *) utarray_front(&xlibMenu->menushell->shell);
             menu != NULL;
-            menu = (MenuShell *) utarray_next(&xlibMenu->menushell->shell, menu)
+            menu = (FcitxMenuItem *) utarray_next(&xlibMenu->menushell->shell, menu)
         )
     {
         if (menu->type == MENUTYPE_SUBMENU && menu->subMenu)
         {
-            CloseAllSubMenuWindow((XlibMenu *)menu->subMenu->uipriv);
+            CloseAllSubMenuWindow((XlibMenu *)menu->subMenu->uipriv[lightui->isfallback]);
         }
     }
     XUnmapWindow(xlibMenu->owner->dpy, xlibMenu->menuWindow);
@@ -243,14 +246,13 @@ boolean IsMouseInOtherMenu(XlibMenu *xlibMenu, int x, int y)
             menupp = (FcitxUIMenu **) utarray_next(uimenus, menupp)
         )
     {
-
-        XlibMenu* otherXlibMenu = (XlibMenu*) (*menupp)->uipriv;
+        XlibMenu* otherXlibMenu = (XlibMenu*) (*menupp)->uipriv[lightui->isfallback];
         if (otherXlibMenu == xlibMenu)
             continue;
         XWindowAttributes attr;
         XGetWindowAttributes(lightui->dpy, otherXlibMenu->menuWindow, &attr);
         if (attr.map_state != IsUnmapped &&
-                IsInBox(x, y, attr.x, attr.y, attr.width, attr.height))
+                FcitxUIIsInBox(x, y, attr.x, attr.y, attr.width, attr.height))
         {
             return true;
         }
@@ -262,7 +264,7 @@ boolean IsMouseInOtherMenu(XlibMenu *xlibMenu, int x, int y)
     XWindowAttributes attr;
     XGetWindowAttributes(lightui->dpy, otherXlibMenu->menuWindow, &attr);
     if (attr.map_state != IsUnmapped &&
-            IsInBox(x, y, attr.x, attr.y, attr.width, attr.height))
+            FcitxUIIsInBox(x, y, attr.x, attr.y, attr.width, attr.height))
     {
         return true;
     }
@@ -271,7 +273,7 @@ boolean IsMouseInOtherMenu(XlibMenu *xlibMenu, int x, int y)
 
 XlibMenu* CreateXlibMenu(FcitxLightUI *lightui)
 {
-    XlibMenu *menu = fcitx_malloc0(sizeof(XlibMenu));
+    XlibMenu *menu = fcitx_utils_malloc0(sizeof(XlibMenu));
     menu->owner = lightui;
     InitXlibMenu(menu);
 
@@ -297,14 +299,14 @@ void GetMenuSize(XlibMenu * menu)
     fontheight= MenuFontSize;
     for (i=0;i<utarray_len(&menu->menushell->shell);i++)
     {
-        if ( GetMenuShell(menu->menushell, i)->type == MENUTYPE_SIMPLE || GetMenuShell(menu->menushell, i)->type == MENUTYPE_SUBMENU)
+        if ( GetMenuItem(menu->menushell, i)->type == MENUTYPE_SIMPLE || GetMenuItem(menu->menushell, i)->type == MENUTYPE_SUBMENU)
         {
             winheight += 6+fontheight;
         }
-        else if ( GetMenuShell(menu->menushell, i)->type == MENUTYPE_DIVLINE)
+        else if ( GetMenuItem(menu->menushell, i)->type == MENUTYPE_DIVLINE)
             winheight += 5;
 
-        int width = StringWidth(menu->owner->dpy, menu->owner->xftfont, GetMenuShell(menu->menushell, i)->tipstr);
+        int width = StringWidth(menu->owner->dpy, menu->owner->xftfont, GetMenuItem(menu->menushell, i)->tipstr);
         if (width > menuwidth)
             menuwidth = width;
     }
@@ -332,17 +334,17 @@ void DrawXlibMenu(XlibMenu * menu)
     iPosY=MenuMarginTop;
     for (i=0;i<utarray_len(&menu->menushell->shell);i++)
     {
-        if ( GetMenuShell(menu->menushell, i)->type == MENUTYPE_SIMPLE || GetMenuShell(menu->menushell, i)->type == MENUTYPE_SUBMENU)
+        if ( GetMenuItem(menu->menushell, i)->type == MENUTYPE_SIMPLE || GetMenuItem(menu->menushell, i)->type == MENUTYPE_SUBMENU)
         {
             DisplayText( menu,i,iPosY);
             if (menu->menushell->mark == i)
                 MenuMark(menu,iPosY,i);
 
-            if (GetMenuShell(menu->menushell, i)->type == MENUTYPE_SUBMENU)
+            if (GetMenuItem(menu->menushell, i)->type == MENUTYPE_SUBMENU)
                 DrawArrow(menu, iPosY);
             iPosY=iPosY+6+fontheight;
         }
-        else if ( GetMenuShell(menu->menushell, i)->type == MENUTYPE_DIVLINE)
+        else if ( GetMenuItem(menu->menushell, i)->type == MENUTYPE_DIVLINE)
         {
             DrawDivLine(menu,iPosY);
             iPosY+=5;
@@ -384,7 +386,7 @@ void MenuMark(XlibMenu * menu,int y,int i)
     int marginLeft = MenuMarginLeft;
     double size = (MenuFontSize * 0.7 );
     GC gc;
-    if (GetMenuShell(menu->menushell, i)->isselect == 0)
+    if (GetMenuItem(menu->menushell, i)->isselect == 0)
     {
         gc = LightUICreateGC(menu->owner->dpy, menu->pixmap, menu->owner->menuFontColor[MENU_INACTIVE]);
     }
@@ -405,9 +407,9 @@ void DisplayText(XlibMenu * menu,int shellindex,int line_y)
     int marginLeft = MenuMarginLeft;
     int marginRight = MenuMarginRight;
 
-    if (GetMenuShell(menu->menushell, shellindex)->isselect ==0)
+    if (GetMenuItem(menu->menushell, shellindex)->isselect ==0)
     {
-        OutputString(menu->owner->dpy, menu->xftDraw, menu->pixmap, menu->owner->xftfont, GetMenuShell(menu->menushell, shellindex)->tipstr , 15 + marginLeft ,line_y, menu->owner->menuFontColor[MENU_INACTIVE]);
+        OutputString(menu->owner->dpy, menu->xftDraw, menu->pixmap, menu->owner->xftfont, GetMenuItem(menu->menushell, shellindex)->tipstr , 15 + marginLeft ,line_y, menu->owner->menuFontColor[MENU_INACTIVE]);
     }
     else
     {
@@ -415,7 +417,7 @@ void DisplayText(XlibMenu * menu,int shellindex,int line_y)
         XFillRectangle(menu->owner->dpy, menu->pixmap, gc, marginLeft ,line_y, menu->width - marginRight - marginLeft, MenuFontSize+4);
         XFreeGC(menu->owner->dpy, gc);
 
-        OutputString(menu->owner->dpy, menu->xftDraw, menu->pixmap, menu->owner->xftfont, GetMenuShell(menu->menushell, shellindex)->tipstr , 15 + marginLeft ,line_y, menu->owner->menuFontColor[MENU_ACTIVE]);
+        OutputString(menu->owner->dpy, menu->xftDraw, menu->pixmap, menu->owner->xftfont, GetMenuItem(menu->menushell, shellindex)->tipstr , 15 + marginLeft ,line_y, menu->owner->menuFontColor[MENU_ACTIVE]);
     }
 }
 
@@ -450,7 +452,7 @@ int SelectShellIndex(XlibMenu * menu, int x, int y, int* offseth)
     fontheight= MenuFontSize;
     for (i=0;i<utarray_len(&menu->menushell->shell);i++)
     {
-        if (GetMenuShell(menu->menushell, i)->type == MENUTYPE_SIMPLE || GetMenuShell(menu->menushell, i)->type == MENUTYPE_SUBMENU)
+        if (GetMenuItem(menu->menushell, i)->type == MENUTYPE_SIMPLE || GetMenuItem(menu->menushell, i)->type == MENUTYPE_SUBMENU)
         {
             if (y>winheight+1 && y<winheight+6+fontheight-1)
             {
@@ -460,7 +462,7 @@ int SelectShellIndex(XlibMenu * menu, int x, int y, int* offseth)
             }
             winheight=winheight+6+fontheight;
         }
-        else if (GetMenuShell(menu->menushell, i)->type == MENUTYPE_DIVLINE)
+        else if (GetMenuItem(menu->menushell, i)->type == MENUTYPE_DIVLINE)
             winheight+=5;
     }
     return -1;
@@ -475,15 +477,15 @@ boolean ReverseColor(XlibMenu * menu,int shellIndex)
 
     for (i=0;i<utarray_len(&menu->menushell->shell);i++)
     {
-        if (GetMenuShell(menu->menushell, i)->isselect)
+        if (GetMenuItem(menu->menushell, i)->isselect)
             last = i;
 
-        GetMenuShell(menu->menushell, i)->isselect=0;
+        GetMenuItem(menu->menushell, i)->isselect=0;
     }
     if (shellIndex == last)
         flag = True;
     if (shellIndex >=0 && shellIndex < utarray_len(&menu->menushell->shell))
-        GetMenuShell(menu->menushell, shellIndex)->isselect = 1;
+        GetMenuItem(menu->menushell, shellIndex)->isselect = 1;
     return flag;
 }
 
@@ -492,7 +494,7 @@ void ClearSelectFlag(XlibMenu * menu)
     int i;
     for (i=0;i< utarray_len(&menu->menushell->shell);i++)
     {
-        GetMenuShell(menu->menushell, i)->isselect=0;
+        GetMenuItem(menu->menushell, i)->isselect=0;
     }
 }
 
@@ -516,7 +518,7 @@ void MoveSubMenu(XlibMenu *sub, XlibMenu *parent, int offseth)
 {
     int dwidth, dheight;
     GetScreenSize(parent->owner, &dwidth, &dheight);
-    UpdateMenuShell(sub->menushell);
+    FcitxMenuUpdate(sub->menushell);
     GetMenuSize(sub);
     sub->iPosX=parent->iPosX + parent->width - MenuMarginRight - 4;
     sub->iPosY=parent->iPosY + offseth - MenuMarginTop;

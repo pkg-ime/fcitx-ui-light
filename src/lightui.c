@@ -15,7 +15,7 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
 #include <X11/Xutil.h>
@@ -62,7 +62,7 @@ static void LightUIOnTriggerOff(void *arg);
 static void LightUIDisplayMessage(void *arg, char *title, char **msg, int length);
 static void LightUIInputReset(void *arg);
 static void ReloadConfigLightUI(void *arg);
-static ConfigFileDesc* GetLightUIDesc();
+static FcitxConfigFileDesc* GetLightUIDesc();
 static void LightUIMainWindowSizeHint(void *arg, int* x, int* y, int* w, int* h);
 
 FCITX_EXPORT_API
@@ -80,7 +80,13 @@ FcitxUI ui = {
     LightUIOnTriggerOff,
     LightUIDisplayMessage,
     LightUIMainWindowSizeHint,
-    ReloadConfigLightUI
+    ReloadConfigLightUI,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
 };
 
 FCITX_EXPORT_API
@@ -89,7 +95,8 @@ int ABI_VERSION = FCITX_ABI_VERSION;
 void* LightUICreate(FcitxInstance* instance)
 {
     FcitxModuleFunctionArg arg;
-    FcitxLightUI* lightui = fcitx_malloc0(sizeof(FcitxLightUI));
+    FcitxLightUI* lightui = fcitx_utils_malloc0(sizeof(FcitxLightUI));
+    FcitxAddon* lightuiaddon = FcitxAddonsGetAddonByName(FcitxInstanceGetAddons(instance), FCITX_LIGHT_UI_NAME);
     lightui->owner = instance;
     if (!LoadLightUIConfig(lightui))
     {
@@ -102,6 +109,7 @@ void* LightUICreate(FcitxInstance* instance)
         free(lightui);
         return NULL;
     }
+    lightui->isfallback = FcitxUIIsFallback(instance, lightuiaddon);
 
     lightui->iScreen = DefaultScreen(lightui->dpy);
     CreateFont(lightui);
@@ -110,7 +118,7 @@ void* LightUICreate(FcitxInstance* instance)
     lightui->killAtom = XInternAtom (lightui->dpy, "WM_DELETE_WINDOW", False);
 
     /* Main Menu Initial */
-    utarray_init(&lightui->mainMenu.shell, &menuICD);
+    FcitxMenuInit(&lightui->mainMenu);
 
     FcitxUIMenu **menupp;
     UT_array* uimenus = FcitxInstanceGetUIMenus(instance);
@@ -121,11 +129,11 @@ void* LightUICreate(FcitxInstance* instance)
     {
         FcitxUIMenu * menup = *menupp;
         if (!menup->isSubMenu)
-            AddMenuShell(&lightui->mainMenu, menup->name, MENUTYPE_SUBMENU, menup);
+            FcitxMenuAddMenuItem(&lightui->mainMenu, menup->name, MENUTYPE_SUBMENU, menup);
     }
-    AddMenuShell(&lightui->mainMenu, NULL, MENUTYPE_DIVLINE, NULL);
-    AddMenuShell(&lightui->mainMenu, _("Configure"), MENUTYPE_SIMPLE, NULL);
-    AddMenuShell(&lightui->mainMenu, _("Exit"), MENUTYPE_SIMPLE, NULL);
+    FcitxMenuAddMenuItem(&lightui->mainMenu, NULL, MENUTYPE_DIVLINE, NULL);
+    FcitxMenuAddMenuItem(&lightui->mainMenu, _("Configure"), MENUTYPE_SIMPLE, NULL);
+    FcitxMenuAddMenuItem(&lightui->mainMenu, _("Exit"), MENUTYPE_SIMPLE, NULL);
     lightui->mainMenu.MenuAction = MainMenuAction;
     lightui->mainMenu.priv = lightui;
     lightui->mainMenu.mark = -1;
@@ -139,7 +147,7 @@ void* LightUICreate(FcitxInstance* instance)
     FcitxIMEventHook resethk;
     resethk.arg = lightui;
     resethk.func = LightUIInputReset;
-    RegisterResetInputHook(instance, resethk);
+    FcitxInstanceRegisterResetInputHook(instance, resethk);
     return lightui;
 }
 
@@ -186,16 +194,14 @@ static void LightUIRegisterMenu(void *arg, FcitxUIMenu* menu)
 {
     FcitxLightUI* lightui = (FcitxLightUI*) arg;
     XlibMenu* xlibMenu = CreateXlibMenu(lightui);
-    menu->uipriv = xlibMenu;
+    menu->uipriv[lightui->isfallback] = xlibMenu;
     xlibMenu->menushell = menu;
 }
 
 static void LightUIRegisterStatus(void *arg, FcitxUIStatus* status)
 {
-    status->priv = fcitx_malloc0(sizeof(FcitxLightUIStatus));
-    char activename[PATH_MAX], inactivename[PATH_MAX];
-    sprintf(activename, "%s_active.png", status->name);
-    sprintf(inactivename, "%s_inactive.png", status->name);
+    FcitxLightUI* lightui = (FcitxLightUI*) arg;
+    status->uipriv[lightui->isfallback] = fcitx_utils_malloc0(sizeof(FcitxLightUIStatus));
 }
 
 static void LightUIOnInputFocus(void *arg)
@@ -203,7 +209,7 @@ static void LightUIOnInputFocus(void *arg)
     FcitxLightUI* lightui = (FcitxLightUI*) arg;
     FcitxInstance *instance = lightui->owner;
     DrawMainWindow(lightui->mainWindow);
-    if (GetCurrentState(instance) == IS_ACTIVE)
+    if (FcitxInstanceGetCurrentStatev2(instance) == IS_ACTIVE)
     {
         ShowMainWindow(lightui->mainWindow);
     }
@@ -261,12 +267,12 @@ CONFIG_DESC_DEFINE(GetLightUIDesc, "fcitx-light-ui.desc")
 
 boolean LoadLightUIConfig(FcitxLightUI* lightui)
 {
-    ConfigFileDesc* configDesc = GetLightUIDesc();
+    FcitxConfigFileDesc* configDesc = GetLightUIDesc();
     if (configDesc == NULL)
         return false;
     FILE *fp;
     char *file;
-    fp = GetXDGFileUserWithPrefix("conf", "fcitx-light-ui.config", "rt", &file);
+    fp = FcitxXDGGetFileUserWithPrefix("conf", "fcitx-light-ui.config", "rt", &file);
     FcitxLog(INFO, _("Load Config File %s"), file);
     free(file);
     if (!fp) {
@@ -274,10 +280,10 @@ boolean LoadLightUIConfig(FcitxLightUI* lightui)
             SaveLightUIConfig(lightui);
     }
 
-    ConfigFile *cfile = ParseConfigFileFp(fp, configDesc);
+    FcitxConfigFile *cfile = FcitxConfigParseConfigFileFp(fp, configDesc);
 
     FcitxLightUIConfigBind(lightui, cfile, configDesc);
-    ConfigBindSync(&lightui->gconfig);
+    FcitxConfigBindSync(&lightui->gconfig);
 
     if (fp)
         fclose(fp);
@@ -286,11 +292,11 @@ boolean LoadLightUIConfig(FcitxLightUI* lightui)
 
 void SaveLightUIConfig(FcitxLightUI *lightui)
 {
-    ConfigFileDesc* configDesc = GetLightUIDesc();
+    FcitxConfigFileDesc* configDesc = GetLightUIDesc();
     char *file;
-    FILE *fp = GetXDGFileUserWithPrefix("conf", "fcitx-light-ui.config", "wt", &file);
+    FILE *fp = FcitxXDGGetFileUserWithPrefix("conf", "fcitx-light-ui.config", "wt", &file);
     FcitxLog(INFO, "Save Config to %s", file);
-    SaveConfigFileFp(fp, &lightui->gconfig, configDesc);
+    FcitxConfigSaveConfigFileFp(fp, &lightui->gconfig, configDesc);
     free(file);
     if (fp)
         fclose(fp);
@@ -298,7 +304,7 @@ void SaveLightUIConfig(FcitxLightUI *lightui)
 
 boolean IsInRspArea(int x0, int y0, FcitxLightUIStatus* status)
 {
-    return IsInBox(x0, y0, status->x, status->y, status->w, status->h);
+    return FcitxUIIsInBox(x0, y0, status->x, status->y, status->w, status->h);
 }
 
 boolean
@@ -319,7 +325,7 @@ void LightUIOnTriggerOn(void* arg)
 {
     FcitxLightUI* lightui = (FcitxLightUI*) arg;
     FcitxInstance *instance = lightui->owner;
-    if (GetCurrentState(instance) == IS_ACTIVE)
+    if (FcitxInstanceGetCurrentState(instance) == IS_ACTIVE)
     {
         DrawMainWindow(lightui->mainWindow);
         ShowMainWindow(lightui->mainWindow);
@@ -348,7 +354,7 @@ boolean MainMenuAction(FcitxUIMenu* menu, int index)
     }
     else if (index == length - 1) /* Exit */
     {
-        EndInstance(lightui->owner);
+        FcitxInstanceEnd(lightui->owner);
     }
     else if (index == length - 2) /* Configuration */
     {
@@ -439,7 +445,7 @@ boolean WindowIsVisable(Display* dpy, Window window)
     return attr.map_state == IsViewable;
 }
 
-GC LightUICreateGC(Display* dpy, Drawable drawable, ConfigColor color)
+GC LightUICreateGC(Display* dpy, Drawable drawable, FcitxConfigColor color)
 {
     XGCValues gcvalues;
     GC gc = XCreateGC(dpy, drawable, 0, &gcvalues);
@@ -448,7 +454,7 @@ GC LightUICreateGC(Display* dpy, Drawable drawable, ConfigColor color)
     return gc;
 }
 
-void LightUISetGC(Display* dpy, GC gc, ConfigColor color)
+void LightUISetGC(Display* dpy, GC gc, FcitxConfigColor color)
 {
     XColor xcolor;
     xcolor.red = color.r * 65535;
