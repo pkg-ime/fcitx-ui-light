@@ -5,7 +5,7 @@ Maintainer: IME Packaging Team <pkg-ime-devel@lists.alioth.debian.org>
 Uploaders: Aron Xu <aron@debian.org>, YunQiang Su <wzssyqa@gmail.com>
 DM-Upload-Allowed: yes
 Build-Depends: debhelper (>= 8), cmake, gettext, pkg-config, intltool,
- fcitx-libs-dev (>= 1:4.1.2), libfontconfig1-dev, libfreetype6-dev,
+ fcitx-libs-dev (>= 1:4.2.0), libfontconfig1-dev, libfreetype6-dev,
  libxft-dev, libxpm-dev
 Standards-Version: 3.9.2
 Homepage: http://code.google.com/p/fcitx
