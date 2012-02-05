@@ -17,7 +17,7 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
 /**
@@ -139,8 +139,8 @@ void DrawResizableBackground(FcitxLightUI* lightui,
                              Drawable drawable,
                              int height,
                              int width,
-                             ConfigColor background,
-                             ConfigColor border,
+                             FcitxConfigColor background,
+                             FcitxConfigColor border,
                              GC gc
                             )
 {
@@ -161,7 +161,7 @@ void DrawResizableBackground(FcitxLightUI* lightui,
     XFillRectangle (lightui->dpy, drawable, gc, 0, height - marginBottom, width, marginBottom);
 }
 
-void DrawInputBar(InputWindow* inputWindow, int iCursorPos, Messages * msgup, Messages *msgdown ,unsigned int * iheight, unsigned int *iwidth)
+void DrawInputBar(InputWindow* inputWindow, int iCursorPos, FcitxMessages * msgup, FcitxMessages *msgdown ,unsigned int * iheight, unsigned int *iwidth)
 {
     int i;
     char *strUp[MAX_MESSAGE_COUNT];
@@ -179,19 +179,19 @@ void DrawInputBar(InputWindow* inputWindow, int iCursorPos, Messages * msgup, Me
     int strWidth = 0, strHeight = 0;
     int fontSize = FONTHEIGHT;
 
-    if (!IsMessageChanged(msgup) && !IsMessageChanged(msgdown))
+    if (!FcitxMessagesIsMessageChanged(msgup) && !FcitxMessagesIsMessageChanged(msgdown))
         return;
 
     inputWidth = 0;
     strHeight = FONTHEIGHT;
 
-    for (i = 0; i < GetMessageCount(msgup) ; i++)
+    for (i = 0; i < FcitxMessagesGetMessageCount(msgup) ; i++)
     {
-        char *trans = ProcessOutputFilter(instance, GetMessageString(msgup, i));
+        char *trans = FcitxInstanceProcessOutputFilter(instance, FcitxMessagesGetMessageString(msgup, i));
         if (trans)
             strUp[i] = trans;
         else
-            strUp[i] = GetMessageString(msgup, i);
+            strUp[i] = FcitxMessagesGetMessageString(msgup, i);
         posUpX[i] = MarginLeft + inputWidth;
 
         strWidth = StringWidth(inputWindow->dpy, inputWindow->owner->xftfont, strUp[i]);
@@ -200,7 +200,7 @@ void DrawInputBar(InputWindow* inputWindow, int iCursorPos, Messages * msgup, Me
         inputWidth += strWidth;
         if (FcitxInputStateGetShowCursor(input))
         {
-            int length = strlen(GetMessageString(msgup, i));
+            int length = strlen(FcitxMessagesGetMessageString(msgup, i));
             if (iChar >= 0)
             {
                 if (iChar < length)
@@ -226,17 +226,17 @@ void DrawInputBar(InputWindow* inputWindow, int iCursorPos, Messages * msgup, Me
     outputWidth = 0;
     outputHeight = 0;
     int currentX = 0;
-    for (i = 0; i < GetMessageCount(msgdown) ; i++)
+    for (i = 0; i < FcitxMessagesGetMessageCount(msgdown) ; i++)
     {
-        char *trans = ProcessOutputFilter(instance, GetMessageString(msgdown, i));
+        char *trans = FcitxInstanceProcessOutputFilter(instance, FcitxMessagesGetMessageString(msgdown, i));
         if (trans)
             strDown[i] = trans;
         else
-            strDown[i] = GetMessageString(msgdown, i);
+            strDown[i] = FcitxMessagesGetMessageString(msgdown, i);
 
         if (inputWindow->owner->bVerticalList) /* vertical */
         {
-            if (GetMessageType(msgdown, i) == MSG_INDEX)
+            if (FcitxMessagesGetMessageType(msgdown, i) == MSG_INDEX)
             {
                 if (currentX > outputWidth)
                     outputWidth = currentX;
@@ -310,17 +310,17 @@ void DrawInputBar(InputWindow* inputWindow, int iCursorPos, Messages * msgup, Me
         //画向前向后箭头
     }
 
-    for (i = 0; i < GetMessageCount(msgup) ; i++)
+    for (i = 0; i < FcitxMessagesGetMessageCount(msgup) ; i++)
     {
-        OutputString(inputWindow->dpy, inputWindow->xftDraw, inputWindow->pixmap, inputWindow->owner->xftfont, strUp[i], posUpX[i], posUpY[i], inputWindow->owner->fontColor[GetMessageType(msgup, i)]);
-        if (strUp[i] != GetMessageString(msgup, i))
+        OutputString(inputWindow->dpy, inputWindow->xftDraw, inputWindow->pixmap, inputWindow->owner->xftfont, strUp[i], posUpX[i], posUpY[i], inputWindow->owner->fontColor[FcitxMessagesGetMessageType(msgup, i)]);
+        if (strUp[i] != FcitxMessagesGetMessageString(msgup, i))
             free(strUp[i]);
     }
 
-    for (i = 0; i < GetMessageCount(msgdown) ; i++)
+    for (i = 0; i < FcitxMessagesGetMessageCount(msgdown) ; i++)
     {
-        OutputString(inputWindow->dpy, inputWindow->xftDraw, inputWindow->pixmap, inputWindow->owner->xftfont, strDown[i], posDownX[i], posDownY[i], inputWindow->owner->fontColor[GetMessageType(msgdown, i)]);
-        if (strDown[i] != GetMessageString(msgdown, i))
+        OutputString(inputWindow->dpy, inputWindow->xftDraw, inputWindow->pixmap, inputWindow->owner->xftfont, strDown[i], posDownX[i], posDownY[i], inputWindow->owner->fontColor[FcitxMessagesGetMessageType(msgdown, i)]);
+        if (strDown[i] != FcitxMessagesGetMessageString(msgdown, i))
             free(strDown[i]);
     }
 
@@ -333,8 +333,8 @@ void DrawInputBar(InputWindow* inputWindow, int iCursorPos, Messages * msgup, Me
         XFreeGC(inputWindow->dpy, gc);
     }
 
-    SetMessageChanged(msgup, false);
-    SetMessageChanged(msgdown, false);
+    FcitxMessagesSetMessageChanged(msgup, false);
+    FcitxMessagesSetMessageChanged(msgdown, false);
 }
 
 
@@ -366,7 +366,7 @@ LightUIImage* LoadImage(struct _FcitxLightUI* lightui, const char* name)
 
     if (xpm != NULL)
     {
-        image = fcitx_malloc0(sizeof(LightUIImage));
+        image = fcitx_utils_malloc0(sizeof(LightUIImage));
         image->name = strdup(name);
         image->image = xpm;
         image->mask = mask;

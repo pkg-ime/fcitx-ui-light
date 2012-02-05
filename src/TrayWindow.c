@@ -17,7 +17,7 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
 #include "fcitx/fcitx.h"
@@ -93,7 +93,7 @@ void InitTrayWindow(TrayWindow *trayWindow)
 }
 
 TrayWindow* CreateTrayWindow(FcitxLightUI *lightui) {
-    TrayWindow *trayWindow = fcitx_malloc0(sizeof(TrayWindow));
+    TrayWindow *trayWindow = fcitx_utils_malloc0(sizeof(TrayWindow));
     trayWindow->owner = lightui;
     FcitxModuleFunctionArg arg;
     arg.args[0] = TrayEventHandler;
@@ -121,13 +121,13 @@ void DrawTrayWindow(TrayWindow* trayWindow) {
     if ( !lightui->bUseTrayIcon )
         return;
 
-    if (GetCurrentState(lightui->owner) == IS_ACTIVE)
+    if (FcitxInstanceGetCurrentStatev2(lightui->owner) == IS_ACTIVE)
         name = "tray_active";
     else
         name = "tray_inactive";
 
     LightUIImage* image = LoadImage(lightui, name);
-    if (image)
+    if (image && trayWindow->window != None)
     {
         DrawImage(dpy, trayWindow->window, image, 0, 0, trayWindow->size, trayWindow->size);
     }
@@ -187,11 +187,11 @@ boolean TrayEventHandler(void *arg, XEvent* event)
             switch (event->xbutton.button)
             {
             case Button1:
-                if (GetCurrentState(instance) == IS_CLOSED) {
-                    EnableIM(instance, GetCurrentIC(instance), false);
+                if (FcitxInstanceGetCurrentState(instance) == IS_CLOSED) {
+                    FcitxInstanceEnableIM(instance, FcitxInstanceGetCurrentIC(instance), false);
                 }
                 else {
-                    CloseIM(instance, GetCurrentIC(instance));
+                    FcitxInstanceCloseIM(instance, FcitxInstanceGetCurrentIC(instance));
                 }
                 break;
             case Button3:

@@ -99,7 +99,7 @@ void CreateFont (FcitxLightUI* lightui)
 
 }
 
-void OutputString (Display* dpy, XftDraw* xftDraw, Drawable window, XftFont* font, char *str, int x, int y, ConfigColor color)
+void OutputString (Display* dpy, XftDraw* xftDraw, Drawable window, XftFont* font, char *str, int x, int y, FcitxConfigColor color)
 {
     if (!font || !str)
         return;
