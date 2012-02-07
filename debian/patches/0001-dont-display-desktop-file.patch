@@ -1,0 +1,21 @@
+From: YunQiang Su <wzssyqa@gmail.com>
+Date: Wed, 8 Feb 2012 02:43:06 +0800
+Subject: dont display desktop file
+
+---
+ data/fcitx-light.desktop.in |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/data/fcitx-light.desktop.in b/data/fcitx-light.desktop.in
+index 64f12ae..a14223b 100644
+--- a/data/fcitx-light.desktop.in
++++ b/data/fcitx-light.desktop.in
+@@ -7,6 +7,7 @@ Terminal=false
+ Type=Application
+ Categories=System;Utility;
+ StartupNotify=false
++NoDisplay=true
+ X-GNOME-Autostart-Phase=Applications
+ X-GNOME-AutoRestart=false
+ X-GNOME-Autostart-Notify=false
+-- 
